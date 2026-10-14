@@ -12,8 +12,8 @@ jobs:
       image: debian:trixie
 
     steps:
-      # 👈 精准修改为兼容这个 Debian 容器环境的 v2 版本
-      - uses: actions/checkout@v2
+      # 1. 升级为 v4 版本的检出插件
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
@@ -33,8 +33,8 @@ jobs:
         run: make clean && make CI=1 MACHINE="KP_9000_9XHML_X_V3_1"
 
       - name: Upload firmware artifact
-        # 👈 同样使用环境内完美兼容的 v2 产物上传插件
-        uses: actions/upload-artifact@v2
+        # 2. 升级为最新的 v4 版本上传插件，彻底解决 GitHub 的报错拦截
+        uses: actions/upload-artifact@v4
         with:
           name: my-perfect-zh-firmware
           path: |
