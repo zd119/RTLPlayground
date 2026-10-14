@@ -12,7 +12,7 @@ jobs:
       image: debian:trixie
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
@@ -25,12 +25,21 @@ jobs:
       - name: Check that every machine definition can be compiled
         run: make machine_check
 
-      - name: Make project (海圣 HI-K0402WS V2.0 专属)
-        # 👈 这里已修正为官方定义的海圣 K0402WS V2.0 专属机器名，确保网口数量不多不少，刚刚好 4+2
-        run: make clean && make CI=1 MACHINE="hisource_hi_k0402ws_v2" LANGUAGE=zh
+      - name: Make project (海圣 4+2 专属中文版)
+        # 1. 先编译出全中文界面的固件，并把重命名出来的 bin 文件保护起来防止被覆盖
+        run: |
+          make clean
+          make CI=1 MACHINE="HI_K0402WS" LANGUAGE=zh
+          mv firmware.bin firmware_zh.bin || true
+          mv output/firmware.bin output/firmware_zh.bin || true
 
-      - name: Make project (8x1/RTL8373)
-        run: make clean && make CI=1 MACHINE="KP_9000_9XHML_X_V3_1"
+      - name: Make project (海圣 4+2 专属英文版)
+        # 2. 再编译一个原汁原味的英文版固件，两者共存
+        run: |
+          make clean
+          make CI=1 MACHINE="HI_K0402WS"
+          mv firmware.bin firmware_en.bin || true
+          mv output/firmware.bin output/firmware_en.bin || true
 
       - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
