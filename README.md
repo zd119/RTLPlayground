@@ -350,7 +350,6 @@ session xxxx            = Web session timeout in seconds (default 200)
 
 Enjoy playing!
 
-## (11) Other documents
 
 The following documents give further documentation on specific features of the RTL837x SoCs:
 - [RTL8372/3 Feature support](doc/hardware.md)
