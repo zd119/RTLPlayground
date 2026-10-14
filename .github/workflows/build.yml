@@ -27,10 +27,10 @@ jobs:
         run: make machine_check
 
       - name: Make project (4x2/RTL8372)
-        run: make clean && make CI=1 MACHINE="KP_9000_6XHML_X2" LANGUAGE=zh
+        run: make clean && make CI=1 MACHINE="HI_K0402WS" LANGUAGE=zh
 
       - name: Make project (8x1/RTL8373)
-        run: make clean && make CI=1 MACHINE="KP_9000_9XHML_X_V3_1"
+        run: make clean && make CI=1 MACHINE="HI_K0402WS"
 
       - name: Upload firmware artifact
         # 2. 升级为最新的 v4 版本上传插件，彻底解决 GitHub 的报错拦截
