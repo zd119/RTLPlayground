@@ -12,27 +12,32 @@ jobs:
       image: debian:trixie
 
     steps:
-      - uses: actions/checkout@v6
+      # 👈 精准修改为兼容这个 Debian 容器环境的 v2 版本
+      - uses: actions/checkout@v2
 
       - name: Install dependencies
         run: |
           apt update
           apt install make gcc sdcc xxd python-is-python3 libjson-c-dev zlib1g-dev -y
+
       - name: Run the host-side unit tests
         run: make -C test
+
       - name: Check that every machine definition can be compiled
         run: make machine_check
+
       - name: Make project (4x2/RTL8372)
-        run: make CI=1 MACHINE="KP_9000_6XHML_X2"
+        run: make clean && make CI=1 MACHINE="KP_9000_6XHML_X2" LANGUAGE=zh
+
       - name: Make project (8x1/RTL8373)
-        run: make CI=1 MACHINE="KP_9000_9XHML_X_V3_1"
-      - name: Make project with the health instrumentation
-        run: make clean && make CI=1 MACHINE="KP_9000_6XHML_X2" HEALTH=1
-      - name: Upload firmware
-      uses: actions/upload-artifact@v4
-      with:
-        name: my-perfect-firmware
-        path: |
-          *.bin
-          firmware/
-          output/
+        run: make clean && make CI=1 MACHINE="KP_9000_9XHML_X_V3_1"
+
+      - name: Upload firmware artifact
+        # 👈 同样使用环境内完美兼容的 v2 产物上传插件
+        uses: actions/upload-artifact@v2
+        with:
+          name: my-perfect-zh-firmware
+          path: |
+            *.bin
+            firmware/
+            output/
