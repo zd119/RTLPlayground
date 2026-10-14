@@ -12,6 +12,7 @@ jobs:
       image: debian:trixie
 
     steps:
+      # 1. 升级为 v4 版本的检出插件
       - uses: actions/checkout@v4
 
       - name: Install dependencies
@@ -25,23 +26,14 @@ jobs:
       - name: Check that every machine definition can be compiled
         run: make machine_check
 
-      - name: Make project (海圣 4+2 专属中文版)
-        # 1. 先编译出全中文界面的固件，并把重命名出来的 bin 文件保护起来防止被覆盖
-        run: |
-          make clean
-          make CI=1 MACHINE="HI_K0402WS" LANGUAGE=zh
-          mv firmware.bin firmware_zh.bin || true
-          mv output/firmware.bin output/firmware_zh.bin || true
+      - name: Make project (4x2/RTL8372)
+        run: make clean && make CI=1 MACHINE="SWGT024_V2_0_MANAGED" LANGUAGE=zh
 
-      - name: Make project (海圣 4+2 专属英文版)
-        # 2. 再编译一个原汁原味的英文版固件，两者共存
-        run: |
-          make clean
-          make CI=1 MACHINE="HI_K0402WS"
-          mv firmware.bin firmware_en.bin || true
-          mv output/firmware.bin output/firmware_en.bin || true
+      - name: Make project (8x1/RTL8373)
+        run: make clean && make CI=1 MACHINE="SWGT024_V2_0_MANAGED"
 
       - name: Upload firmware artifact
+        # 2. 升级为最新的 v4 版本上传插件，彻底解决 GitHub 的报错拦截
         uses: actions/upload-artifact@v4
         with:
           name: my-perfect-zh-firmware
@@ -49,3 +41,4 @@ jobs:
             *.bin
             firmware/
             output/
+这样可以编译
