@@ -12,8 +12,7 @@ jobs:
       image: debian:trixie
 
     steps:
-      # 1. 升级为 v4 版本的检出插件
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
 
       - name: Install dependencies
         run: |
@@ -26,14 +25,14 @@ jobs:
       - name: Check that every machine definition can be compiled
         run: make machine_check
 
-      - name: Make project (4x2/RTL8372)
-        run: make clean && make CI=1 MACHINE="SWGT024_V2_0" LANGUAGE=zh
+      - name: Make project (海圣 HI-K0402WS V2.0 专属)
+        # 👈 这里已修正为官方定义的海圣 K0402WS V2.0 专属机器名，确保网口数量不多不少，刚刚好 4+2
+        run: make clean && make CI=1 MACHINE="hisource_hi_k0402ws_v2" LANGUAGE=zh
 
       - name: Make project (8x1/RTL8373)
-        run: make clean && make CI=1 MACHINE="SWGT024_V2_0"
+        run: make clean && make CI=1 MACHINE="KP_9000_9XHML_X_V3_1"
 
       - name: Upload firmware artifact
-        # 2. 升级为最新的 v4 版本上传插件，彻底解决 GitHub 的报错拦截
         uses: actions/upload-artifact@v4
         with:
           name: my-perfect-zh-firmware
