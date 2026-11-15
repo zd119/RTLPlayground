@@ -1,9 +1,14 @@
-name: Build firmware
+name: Build Custom Firmware
 
 on:
+  workflow_dispatch: # 允许在 GitHub 网页端手动点击运行
+    inputs:
+      machine:
+        description: '目标设备型号 (MACHINE)'
+        required: true
+        default: 'DEFAULT_8C_1SFP'
   push:
-    branches: ['**']
-  pull_request:
+    branches: ['main']
 
 permissions:
   contents: read
@@ -15,48 +20,31 @@ jobs:
       image: debian:trixie
 
     steps:
-      - uses: actions/checkout@v6
-        with:
-          path: branch
-
-      - uses: actions/checkout@v6
-        with:
-          path: main
-          ref: main
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          apt update
-          apt install make gcc g++ pkg-config bison flex libboost-dev patch bzip2 curl ca-certificates xxd python-is-python3 libjson-c-dev zlib1g-dev -y
-      - name: Cache the patched SDCC
+          apt-get update
+          apt-get install -y make gcc g++ pkg-config bison flex libboost-dev patch bzip2 curl ca-certificates xxd python-is-python3 libjson-c-dev zlib1g-dev
+
+      - name: Cache patched SDCC
         uses: actions/cache@v4
         with:
-          path: branch/toolchain
-          key: sdcc-${{ hashFiles('branch/sdcc/*') }}
-      - name: Run the host-side unit tests
-        run: cd branch && make -C test
-      - name: Check that every machine definition can be compiled
-        run: cd branch && make machine_check
-      - name: Make project (4x2/RTL8372)
-        run: mkdir -p /tmp/branch /tmp/main && cd branch && make CI=1 MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" && cp -r output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/rtlplayground.map output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/rtlplayground.mem output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/html_min /tmp/branch/
-      - name: Make project (8x1/RTL8373)
-        run: cd branch && make CI=1 MACHINE="KEEPLINK_KP_9000_9XHML_X_2M_PCB23_V3_1"
-      - name: Make project with the health instrumentation
-        run: cd branch && make clean && make CI=1 MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" HEALTH=1
-      - name: Make project with the debug output
-        run: cd branch && make clean && make CI=1 MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" DEBUG=1
-      - name: Make main
+          path: toolchain
+          key: sdcc-${{ hashFiles('sdcc/*') }}
+
+      - name: Build firmware & OEM upgrade image
+        env:
+          TARGET_MACHINE: ${{ github.event.inputs.machine || 'DEFAULT_8C_1SFP' }}
         run: |
-          ln -s ../branch/toolchain main/toolchain
-          PATH="$(echo "$PWD"/branch/toolchain/sdcc-*/bin):$PATH"
-          cd main && make CI=1 MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" && cp -r output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/rtlplayground.map output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/rtlplayground.mem output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/html_min /tmp/main/
-      - name: Calculate bank growth
-        run: |
-          bash branch/tools/bank_occupancy.sh KP_9000_6XHML_X2 /tmp/main /tmp/branch >> "$GITHUB_STEP_SUMMARY"
-          - name: Upload firmware artifact
-          uses: actions/upload-artifact@v4
+          make MACHINE="$TARGET_MACHINE"
+          make -C installer
+
+      - name: Upload Firmware Artifacts
+        uses: actions/upload-artifact@v4
         with:
-        name: firmware-bin
-        path: |
-             main/output/**/*.bin
-            main/output/**/*.elf
+          name: rtlplayground-firmware
+          path: |
+            output/**/*.bin
+            installer/output/rtlplayground_oem_upgrade.bin
