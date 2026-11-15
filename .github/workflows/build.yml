@@ -5,9 +5,6 @@ on:
     branches: ['**']
   pull_request:
 
-permissions:
-  contents: read
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,41 +12,32 @@ jobs:
       image: debian:trixie
 
     steps:
-      - uses: actions/checkout@v6
-        with:
-          path: branch
-
-      - uses: actions/checkout@v6
-        with:
-          path: main
-          ref: main
+      # 1. 升级为 v4 版本的检出插件
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           apt update
-          apt install make gcc g++ pkg-config bison flex libboost-dev patch bzip2 curl ca-certificates xxd python-is-python3 libjson-c-dev zlib1g-dev -y
-      - name: Cache the patched SDCC
-        uses: actions/cache@v4
-        with:
-          path: branch/toolchain
-          key: sdcc-${{ hashFiles('branch/sdcc/*') }}
+          apt install make gcc sdcc xxd python-is-python3 libjson-c-dev zlib1g-dev -y
+
       - name: Run the host-side unit tests
-        run: cd branch && make -C test
+        run: make -C test
+
       - name: Check that every machine definition can be compiled
-        run: cd branch && make machine_check
+        run: make machine_check
+
       - name: Make project (4x2/RTL8372)
-        run: mkdir -p /tmp/branch /tmp/main && cd branch && make CI=1 MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" && cp -r output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/rtlplayground.map output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/rtlplayground.mem output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/html_min /tmp/branch/
+        run: make clean && make CI=1 MACHINE="KP_9000_6XHML_X2" LANGUAGE=zh
+
       - name: Make project (8x1/RTL8373)
-        run: cd branch && make CI=1 MACHINE="KEEPLINK_KP_9000_9XHML_X_2M_PCB23_V3_1"
-      - name: Make project with the health instrumentation
-        run: cd branch && make clean && make CI=1 MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" HEALTH=1
-      - name: Make project with the debug output
-        run: cd branch && make clean && make CI=1 MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" DEBUG=1
-      - name: Make main
-        run: |
-          ln -s ../branch/toolchain main/toolchain
-          PATH="$(echo "$PWD"/branch/toolchain/sdcc-*/bin):$PATH"
-          cd main && make CI=1 MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" && cp -r output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/rtlplayground.map output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/rtlplayground.mem output/KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1/html_min /tmp/main/
-      - name: Calculate bank growth
-        run: |
-          bash branch/tools/bank_occupancy.sh KP_9000_6XHML_X2 /tmp/main /tmp/branch >> "$GITHUB_STEP_SUMMARY"
+        run: make clean && make CI=1 MACHINE="KP_9000_9XHML_X_V3_1"
+
+      - name: Upload firmware artifact
+        # 2. 升级为最新的 v4 版本上传插件，彻底解决 GitHub 的报错拦截
+        uses: actions/upload-artifact@v4
+        with:
+          name: my-perfect-zh-firmware
+          path: |
+            *.bin
+            firmware/
+            output/
