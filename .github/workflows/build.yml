@@ -1,14 +1,10 @@
-name: Build Custom Firmware
+name: Build firmware
 
 on:
-  workflow_dispatch: # 允许在 GitHub 网页端手动点击运行
-    inputs:
-      machine:
-        description: '目标设备型号 (MACHINE)'
-        required: true
-        default: 'DEFAULT_8C_1SFP'
+  workflow_dispatch: # 支持在网页端手动点击运行
   push:
-    branches: ['main']
+    branches: ['**']
+  pull_request:
 
 permissions:
   contents: read
@@ -20,31 +16,30 @@ jobs:
       image: debian:trixie
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
           apt-get update
           apt-get install -y make gcc g++ pkg-config bison flex libboost-dev patch bzip2 curl ca-certificates xxd python-is-python3 libjson-c-dev zlib1g-dev
 
-      - name: Cache patched SDCC
+      - name: Cache the patched SDCC
         uses: actions/cache@v4
         with:
           path: toolchain
           key: sdcc-${{ hashFiles('sdcc/*') }}
 
-      - name: Build firmware & OEM upgrade image
-        env:
-          TARGET_MACHINE: ${{ github.event.inputs.machine || 'DEFAULT_8C_1SFP' }}
+      - name: Make project (4x2/RTL8372 - KP_9000_6XHML_X2)
         run: |
-          make MACHINE="$TARGET_MACHINE"
-          make -C installer
+          make MACHINE="KEEPLINK_KP_9000_6XHML_X2_2M_PCB43_V1_1" LANGUAGE=zh OUTPUT_DIR=release_bin
 
-      - name: Upload Firmware Artifacts
+      - name: Make project (8x1/RTL8373 - KP_9000_9XHML_X)
+        run: |
+          make clean
+          make MACHINE="KEEPLINK_KP_9000_9XHML_X_2M_PCB23_V3_1" LANGUAGE=zh OUTPUT_DIR=release_bin
+
+      - name: Upload firmware artifact
         uses: actions/upload-artifact@v4
         with:
-          name: rtlplayground-firmware
-          path: |
-            output/**/*.bin
-            installer/output/rtlplayground_oem_upgrade.bin
+          name: my-perfect-zh-firmware
+          path: release_bin/*.bin
